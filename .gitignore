@@ -1,0 +1,25 @@
+# Node / server
+node_modules/
+server/.env
+server/*.log
+server/bin/
+server/data/
+
+# Android build artifacts
+*.apk
+*.aab
+*.iml
+.gradle/
+.idea/
+local.properties
+app/build/
+app/app/build/
+app/captures/
+app/.cxx/
+
+# Reverse-engineering case workspace (evidence, captures, scratch scripts)
+work/
+
+# Misc
+.DS_Store
+Thumbs.db

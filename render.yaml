@@ -1,0 +1,11 @@
+# Render blueprint: Aura server (keyless playlist fetcher + audio materializer).
+# Phone app is the source of truth; this service's disk is disposable.
+services:
+  - type: web
+    name: aura-server
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install && node scripts/setup-ytdlp.mjs
+    startCommand: npm start
+    healthCheckPath: /api/health

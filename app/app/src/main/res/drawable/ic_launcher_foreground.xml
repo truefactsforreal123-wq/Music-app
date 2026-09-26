@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Glass ring -->
+    <path
+        android:pathData="M54,54m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0"
+        android:strokeWidth="3.5"
+        android:strokeColor="#F5F5F4"
+        android:fillColor="#00000000" />
+    <!-- Play glyph -->
+    <path
+        android:fillColor="#F5F5F4"
+        android:pathData="M47,42.5 L67,54 L47,65.5 Z" />
+</vector>

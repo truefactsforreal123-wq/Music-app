@@ -1,0 +1,8 @@
+# Signing material — never commit or share these
+keystore/
+keystore.properties
+
+# Build output
+build/
+.gradle/
+local.properties
