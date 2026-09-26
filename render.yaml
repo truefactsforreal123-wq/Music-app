@@ -9,3 +9,4 @@ services:
     buildCommand: npm install && node scripts/setup-ytdlp.mjs
     startCommand: npm start
     healthCheckPath: /api/health
+    healthCheckTimeout: 60

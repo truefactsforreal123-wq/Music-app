@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getDb, rowToTrackDto, type TrackRow } from '../db.js';
 import { NotFoundError } from '../errors.js';
 import { SERVER_VERSION } from '../config.js';
-import { ytDlpVersion } from '../services/ytdlp.js';
+import { peekYtDlpVersion, resolveYtDlp } from '../services/ytdlp.js';
 import { ytdlpProvider } from '../providers/ytdlp-provider.js';
 import { spotifyConfigured } from '../providers/spotify.js';
 import { networkInterfaces } from 'node:os';
@@ -13,7 +13,7 @@ export async function miscRoutes(app: FastifyInstance): Promise<void> {
     return {
       ok: true,
       version: SERVER_VERSION,
-      ytDlp: { available: ytDlpVersion() !== null, version: ytDlpVersion(), path: 'server/bin' },
+      ytDlp: { available: resolveYtDlp() !== null, version: peekYtDlpVersion(), path: 'server/bin' },
       spotify: spotifyConfigured,
       lanIps: lanIps(),
     };

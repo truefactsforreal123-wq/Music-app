@@ -7,6 +7,7 @@ import { PORT, SERVER_VERSION } from './config.js';
 import { initDb } from './db.js';
 import { registerRoutes } from './routes/index.js';
 import { AppError } from './errors.js';
+import { warmYtDlpVersion } from './services/ytdlp.js';
 
 const app = Fastify({
   logger: { level: 'warn' },
@@ -43,6 +44,10 @@ initDb();
 await app.register(registerRoutes);
 
 await app.listen({ port: PORT, host: '0.0.0.0' });
+
+// Warm the yt-dlp version probe off the request path: Render health-checks
+// /api/health immediately, and a cold 40MB spawn can outlast its timeout.
+warmYtDlpVersion();
 
 const ips = lanIps();
 const line = '─'.repeat(56);

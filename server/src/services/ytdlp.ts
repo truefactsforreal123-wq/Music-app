@@ -20,11 +20,55 @@ export function resolveYtDlp(): string | null {
   return null;
 }
 
+let versionCache: string | null | undefined;
+
+/** Blocking probe — result is memoized, so at most one spawn ever. */
 export function ytDlpVersion(): string | null {
+  if (versionCache !== undefined) return versionCache;
   const bin = resolveYtDlp();
-  if (!bin) return null;
+  if (!bin) {
+    versionCache = null;
+    return null;
+  }
   const probe = spawnSyncSafe(bin, ['--version']);
-  return probe.ok ? probe.stdout.trim() : null;
+  versionCache = probe.ok ? probe.stdout.trim() : null;
+  return versionCache;
+}
+
+/** Never spawns: returns the cached version (null until warmed). For health checks. */
+export function peekYtDlpVersion(): string | null {
+  return versionCache ?? null;
+}
+
+/**
+ * Caches the version asynchronously so /api/health never blocks on a spawn.
+ * On small hosts a cold yt-dlp probe can take seconds — that must not happen
+ * inside Render's health-check window.
+ */
+export function warmYtDlpVersion(): void {
+  if (versionCache !== undefined) return;
+  const bin = resolveYtDlp();
+  if (!bin) {
+    versionCache = null;
+    return;
+  }
+  try {
+    const child = spawn(bin, ['--version'], { windowsHide: true });
+    let out = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (d: string) => {
+      if (out.length < 4096) out += d;
+    });
+    child.on('error', () => {
+      versionCache = null;
+    });
+    child.on('close', (code) => {
+      const v = out.trim();
+      versionCache = code === 0 && v ? v : null;
+    });
+  } catch {
+    versionCache = null;
+  }
 }
 
 function spawnSyncSafe(bin: string, args: string[]) {
