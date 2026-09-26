@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -21,8 +22,8 @@ android {
         applicationId = "com.aura.player"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     signingConfigs {
@@ -123,7 +124,7 @@ tasks.register("publishApk") {
         val apk = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
         check(apk.exists()) { "No release APK found at $apk — did assembleRelease run?" }
 
-        val dest = java.io.File(repoRoot, "server/public/Aura-$apkVersion.apk")
+        val dest = File(repoRoot, "server/public/Aura-$apkVersion.apk")
         dest.parentFile.mkdirs()
         val changed = !dest.exists() || !apk.readBytes().contentEquals(dest.readBytes())
         apk.copyTo(dest, overwrite = true)
@@ -161,6 +162,6 @@ tasks.register("publishApk") {
     }
 }
 
-tasks.named("assembleRelease") {
+tasks.matching { it.name == "assembleRelease" }.configureEach {
     finalizedBy("publishApk")
 }
