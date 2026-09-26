@@ -3,8 +3,10 @@ import { fetchRoutes } from './fetch.js';
 import { playlistRoutes } from './playlists.js';
 import { trackRoutes } from './tracks.js';
 import { miscRoutes } from './misc.js';
+import { landingRoutes } from './landing.js';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
+  await app.register(landingRoutes);
   await app.register(fetchRoutes);
   await app.register(playlistRoutes);
   await app.register(trackRoutes);

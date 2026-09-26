@@ -7,6 +7,8 @@ server/data/
 
 # Android build artifacts
 *.apk
+# …except the APKs served by the download page (they ship with the repo)
+!server/public/*.apk
 *.aab
 *.iml
 .gradle/

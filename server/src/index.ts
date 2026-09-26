@@ -34,12 +34,6 @@ app.setErrorHandler((err, req, reply) => {
   reply.status(500).send({ error: 'Internal server error' });
 });
 
-app.get('/', async () => ({
-  name: 'Aura server',
-  version: SERVER_VERSION,
-  health: '/api/health',
-}));
-
 initDb();
 await app.register(registerRoutes);
 

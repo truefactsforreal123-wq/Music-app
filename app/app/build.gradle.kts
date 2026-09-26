@@ -108,3 +108,59 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.7.0")
 }
+
+// ── Auto-publish pipeline ─────────────────────────────────────────────────────
+// assembleRelease → copies the signed APK into server/public/ (the download
+// page's store), commits just that path, and pushes. Render redeploys on push,
+// so the live page picks up the new build with zero manual steps.
+val apkVersion: String = android.defaultConfig.versionName ?: "dev"
+
+tasks.register("publishApk") {
+    group = "publish"
+    description = "Stage the release APK on the download page and push it (Render auto-redeploys)"
+    doLast {
+        val repoRoot = rootProject.projectDir.parentFile
+        val apk = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
+        check(apk.exists()) { "No release APK found at $apk — did assembleRelease run?" }
+
+        val dest = java.io.File(repoRoot, "server/public/Aura-$apkVersion.apk")
+        dest.parentFile.mkdirs()
+        val changed = !dest.exists() || !apk.readBytes().contentEquals(dest.readBytes())
+        apk.copyTo(dest, overwrite = true)
+        logger.lifecycle("Staged ${dest.name} (${apk.length() / 1024 / 1024} MB) on the download page")
+
+        if (!changed) {
+            logger.lifecycle("APK identical to published copy — nothing to push")
+            return@doLast
+        }
+
+        fun git(vararg args: String): Int {
+            val proc = ProcessBuilder(listOf("git", "-C", repoRoot.absolutePath) + args)
+                .redirectErrorStream(true)
+                .start()
+            val output = proc.inputStream.bufferedReader().readText()
+            val code = proc.waitFor()
+            if (code != 0) logger.info("git ${args.joinToString(" ")} exited $code:\n$output.trim()")
+            return code
+        }
+
+        git("add", "server/public")
+        val staged = git("diff", "--cached", "--quiet", "--", "server/public") // 1 = something staged
+        if (staged != 1) {
+            logger.lifecycle("No staged APK change — nothing to push")
+            return@doLast
+        }
+        if (git("commit", "-m", "APK: Aura-$apkVersion") != 0) {
+            throw GradleException("git commit failed — fix the working tree and retry")
+        }
+        logger.lifecycle("Pushing Aura-$apkVersion.apk → Render will redeploy in ~1-2 min")
+        if (git("push") != 0) {
+            throw GradleException("git push failed — check credentials/remote")
+        }
+        logger.lifecycle("Done. Page updates at https://aura-server-weqe.onrender.com once the deploy finishes")
+    }
+}
+
+tasks.named("assembleRelease") {
+    finalizedBy("publishApk")
+}
