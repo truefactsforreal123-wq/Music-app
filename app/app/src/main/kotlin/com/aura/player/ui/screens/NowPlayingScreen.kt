@@ -1,5 +1,19 @@
 package com.aura.player.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,19 +71,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.aura.player.data.db.DownloadState
 import com.aura.player.data.db.TrackEntity
 import com.aura.player.di.AppContainer
 import com.aura.player.ui.PlayerViewModel
 import com.aura.player.ui.components.formatDuration
+import com.aura.player.ui.components.bounceClick
 import com.aura.player.ui.components.glass
 import com.aura.player.ui.theme.AuraShapes
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +114,9 @@ fun NowPlayingScreen(
         val backdrop = track?.artUrl
         if (backdrop != null) {
             Image(
-                painter = rememberAsyncImagePainter(backdrop),
+                painter = rememberAsyncImagePainter(
+                    ImageRequest.Builder(LocalContext.current).data(backdrop).crossfade(400).build(),
+                ),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -129,12 +149,22 @@ fun NowPlayingScreen(
                 TabPill("Lyrics", tab == 2) { tab = 2 }
             }
 
-            when (tab) {
-                1 -> QueueTab(playerViewModel)
-                2 -> LyricsTab(container, playerViewModel, track?.title ?: "", track?.artist ?: "")
-                else -> PlayerTab(container, playerViewModel, navController, track, isPlaying, position, duration, shuffle, repeatMode)
-            }
-        }
+            AnimatedContent(
+                targetState = tab,
+                transitionSpec = {
+                    // Slide in the direction of the tab you moved to.
+                    val dir = if (targetState > initialState) 1 else -1
+                    (fadeIn(tween(220)) + slideInHorizontally(tween(220)) { dir * it / 12 }) togetherWith
+                        (fadeOut(tween(130)) + slideOutHorizontally(tween(130)) { -dir * it / 12 })
+                },
+                label = "nowPlayingTabs",
+            ) { t ->
+                when (t) {
+                    1 -> QueueTab(playerViewModel)
+                    2 -> LyricsTab(container, playerViewModel, track?.title ?: "", track?.artist ?: "")
+                    else -> PlayerTab(container, playerViewModel, navController, track, isPlaying, position, duration, shuffle, repeatMode)
+                }
+            }        }
     }
 }
 
@@ -181,7 +211,9 @@ private fun PlayerTab(
                 Icon(Icons.Filled.Lyrics, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Image(
-                    painter = rememberAsyncImagePainter(track?.artUrl),
+                    painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current).data(track?.artUrl).crossfade(220).build(),
+                    ),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -209,8 +241,14 @@ private fun PlayerTab(
         var dragging by remember { mutableStateOf(false) }
         var dragPos by remember { mutableStateOf(0f) }
         val denom = if (duration > 0) duration.toFloat() else 1f
+        // Glides between the 500 ms ticker updates instead of stepping jerkily.
+        val smoothPos by animateFloatAsState(
+            targetValue = (position.toFloat() / denom).coerceIn(0f, 1f),
+            animationSpec = tween(500, easing = LinearEasing),
+            label = "smoothSeek",
+        )
         Slider(
-            value = if (dragging) dragPos else (position.toFloat() / denom).coerceIn(0f, 1f),
+            value = if (dragging) dragPos else smoothPos,
             onValueChange = { dragging = true; dragPos = it },
             onValueChangeFinished = {
                 playerViewModel.seekTo((dragPos * duration).toLong())
@@ -243,15 +281,24 @@ private fun PlayerTab(
                 Modifier
                     .size(72.dp)
                     .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(999.dp))
-                    .clickable { playerViewModel.toggle() },
+                    .bounceClick { playerViewModel.toggle() },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(40.dp),
-                )
+                AnimatedContent(
+                    targetState = isPlaying,
+                    transitionSpec = {
+                        (scaleIn(tween(160)) + fadeIn(tween(160))) togetherWith
+                            (scaleOut(tween(110)) + fadeOut(tween(110)))
+                    },
+                    label = "playPause",
+                ) { playing ->
+                    Icon(
+                        if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = if (playing) "Pause" else "Play",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(40.dp),
+                    )
+                }
             }
             IconButton(onClick = { playerViewModel.next() }) {
                 Icon(Icons.Filled.SkipNext, contentDescription = "Next", modifier = Modifier.size(36.dp))
@@ -271,11 +318,25 @@ private fun PlayerTab(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             if (track != null) {
+                val heartScale = remember { Animatable(1f) }
+                LaunchedEffect(track.isLiked) {
+                    if (track.isLiked) {
+                        heartScale.snapTo(0.55f)
+                        heartScale.animateTo(
+                            1f,
+                            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                        )
+                    }
+                }
                 IconButton(onClick = { playerViewModel.toggleLike(track) }) {
                     Icon(
                         if (track.isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = if (track.isLiked) "Unlike" else "Like",
                         tint = if (track.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = heartScale.value
+                            scaleY = heartScale.value
+                        },
                     )
                 }
                 IconButton(

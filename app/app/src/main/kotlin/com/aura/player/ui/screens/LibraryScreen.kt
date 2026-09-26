@@ -34,14 +34,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.aura.player.data.db.PlaylistEntity
 import com.aura.player.di.AppContainer
 import com.aura.player.ui.PlayerViewModel
 import com.aura.player.ui.components.Artwork
+import com.aura.player.ui.components.bounceClick
 import com.aura.player.ui.components.glass
 import com.aura.player.ui.theme.AuraShapes
 
@@ -138,7 +141,9 @@ fun LibraryScreen(
                 }
             } else {
                 items(playlists, key = { it.id }) { playlist ->
-                    PlaylistRow(playlist) { navController.navigate("playlist/${playlist.id}") }
+                    Box(Modifier.animateItem()) {
+                        PlaylistRow(playlist) { navController.navigate("playlist/${playlist.id}") }
+                    }
                 }
             }
         }
@@ -170,7 +175,7 @@ private fun QuickCard(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
     Row(
         modifier
             .glass(AuraShapes.medium)
-            .clickable { onClick() }
+            .bounceClick(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -203,7 +208,9 @@ private fun PlaylistRow(playlist: PlaylistEntity, onClick: () -> Unit) {
                 }
             } else {
                 androidx.compose.foundation.Image(
-                    painter = rememberAsyncImagePainter(art),
+                    painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current).data(art).crossfade(220).build(),
+                    ),
                     contentDescription = null,
                     modifier = Modifier
                         .size(52.dp)

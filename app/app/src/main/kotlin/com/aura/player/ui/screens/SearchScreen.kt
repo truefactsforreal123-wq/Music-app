@@ -76,6 +76,8 @@ fun SearchScreen(
             remoteError = null
             try {
                 remoteResults = container.api.search(query.trim()).tracks
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e // superseded by a newer query — not an error
             } catch (t: Throwable) {
                 remoteError = t.message ?: "Search failed"
                 remoteResults = emptyList()

@@ -92,9 +92,12 @@ fun ImportScreen(container: AppContainer, navController: NavController) {
                         try {
                             val res = container.library.fetchPlaylist(url.trim())
                             container.library.syncLibrary()
+                            container.settings.addRecentUrl(res.playlist.sourceUrl ?: url.trim())
                             state = ImportState.Idle
                             url = ""
                             navController.navigate("playlist/${res.playlist.id}")
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e // superseded by a newer fetch — not an error
                         } catch (t: Throwable) {
                             state = ImportState.Error(t.message ?: "Something went wrong")
                         }

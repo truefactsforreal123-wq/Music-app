@@ -37,9 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.aura.player.data.db.DownloadState
 import com.aura.player.data.db.TrackEntity
 import java.util.Locale
@@ -184,7 +186,9 @@ fun Artwork(url: String?, size: androidx.compose.ui.unit.Dp, shape: RoundedCorne
             )
         } else {
             Image(
-                painter = rememberAsyncImagePainter(url),
+                painter = rememberAsyncImagePainter(
+                    ImageRequest.Builder(LocalContext.current).data(url).crossfade(220).build(),
+                ),
                 contentDescription = null,
                 modifier = Modifier.size(size),
             )

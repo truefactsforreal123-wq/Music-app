@@ -8,6 +8,12 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
@@ -128,8 +134,12 @@ private fun AuraApp(container: com.aura.player.di.AppContainer) {
             if (showBottomBar) {
                 val batch by container.downloads.observeBatch().collectAsState(initial = null)
                 Column {
-                    batch?.takeIf { it.active > 0 }?.let {
-                        DownloadBanner(active = it.active, percent = it.percent)
+                    AnimatedVisibility(
+                        visible = (batch?.active ?: 0) > 0,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        DownloadBanner(active = batch?.active ?: 0, percent = batch?.percent ?: 0)
                     }
                     MiniPlayer(
                         container = container,
@@ -166,6 +176,12 @@ private fun AuraApp(container: com.aura.player.di.AppContainer) {
                 navController = navController,
                 startDestination = "library",
                 modifier = Modifier.fillMaxSize(),
+                // Gentle fade-through with a hint of drift for every route;
+                // the player route overrides with its own full slide-up.
+                enterTransition = { fadeIn(tween(260)) + slideInVertically(tween(260)) { it / 24 } },
+                exitTransition = { fadeOut(tween(180)) },
+                popEnterTransition = { fadeIn(tween(260)) },
+                popExitTransition = { fadeOut(tween(180)) + slideOutVertically(tween(260)) { it / 24 } },
             ) {
                 composable("library") { LibraryScreen(container, playerViewModel, navController) }
                 composable("import") { ImportScreen(container, navController) }

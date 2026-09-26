@@ -53,10 +53,15 @@ class SettingsRepository(private val context: Context) {
     val recentUrls: Flow<Set<String>> = context.dataStore.data.map { it[Keys.RECENT_URLS] ?: emptySet() }
 
     suspend fun setServerUrl(url: String) {
+        context.dataStore.edit { it[Keys.SERVER_URL] = url.trim() }
+    }
+
+    /** Remembers fetched playlist URLs for the Import screen's "Recent links". */
+    suspend fun addRecentUrl(url: String) {
+        if (url.isBlank()) return
         context.dataStore.edit {
-            it[Keys.SERVER_URL] = url.trim()
             val recent = it[Keys.RECENT_URLS] ?: emptySet()
-            if (url.isNotBlank()) it[Keys.RECENT_URLS] = (recent + url.trim()).take(8).toSet()
+            it[Keys.RECENT_URLS] = (setOf(url.trim()) + recent).take(8).toSet()
         }
     }
 

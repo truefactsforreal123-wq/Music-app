@@ -91,7 +91,9 @@ fun PlaylistScreen(
     val selectionMode = remember { mutableStateOf(false) }
     val selected = remember { mutableStateListOf<String>() }
 
-    LaunchedEffect(playlistId) { runCatching { container.library.syncPlaylist(playlistId) } }
+    LaunchedEffect(playlistId) {
+        if (!isLikedView) runCatching { container.library.syncPlaylist(playlistId) }
+    }
 
     Column(Modifier.fillMaxSize()) {
         if (selectionMode.value) {

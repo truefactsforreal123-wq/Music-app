@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -179,8 +181,25 @@ fun SettingsScreen(container: AppContainer) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = { scope.launch { container.downloads.deleteAllLocal() } }) {
+            var confirmClear by remember { mutableStateOf(false) }
+            OutlinedButton(onClick = { confirmClear = true }) {
                 Text("Clear all")
+            }
+            if (confirmClear) {
+                AlertDialog(
+                    onDismissRequest = { confirmClear = false },
+                    title = { Text("Clear all downloads?") },
+                    text = { Text("Every offline file on this device will be deleted. You can download them again later.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmClear = false
+                            scope.launch { container.downloads.deleteAllLocal() }
+                        }) { Text("Clear") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmClear = false }) { Text("Cancel") }
+                    },
+                )
             }
         }
 
